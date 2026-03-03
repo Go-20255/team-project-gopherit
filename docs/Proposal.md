@@ -31,7 +31,7 @@ Unit tests can be created to test functionality as well as create situations whe
 
 ## Stretch Goals
 ### polo
-- 
+- A stretch goal for polo is implementing a file preview pane that displays a preview of the currently selected file or directory. When the user navigates through entries, the preview pane would dynamically show relevant information such as the first few lines of a text file, metadata for other file types, or the contents of a directory, allowing users to inspect files without opening them.
 
 ### grep
 - Interactive mode, updates result as regex is updated
