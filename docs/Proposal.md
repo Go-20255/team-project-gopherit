@@ -36,7 +36,8 @@ Unit tests can be created to test functionality as well as create situations whe
 ### grep
 - Interactive mode, updates result as regex is updated
   - Corrects users regex errors
-- 
+- Context-Aware Results
+  - A further enhancement would be showing additional context around matches, such as a configurable number of lines before and after each result. This helps users understand how a match appears in the surrounding code or text without opening the file separately.
 
 ## Checkpoint Goals
 Because our MVP is so minimal, we feel that the meat of the project will be in the strech goals + enhancements to the MVP. Our goal for the checkpoint is to have the MVP done, as both of these utilities are pretty simple at their base. It's possible that we run into issues with the interactive menu of polo, so its possible that that may not be working 100% by the checkpoint. Otherwise, we feel pretty safe to expect that grep will be minimally complete by that time.
