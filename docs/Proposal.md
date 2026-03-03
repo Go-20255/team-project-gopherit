@@ -15,7 +15,7 @@ Recreate grep (and possibly other command line utilites) with improvements + add
 This is pretty straight forward, these two utilites are going to be used any time you would use what they aim to replace.
 
 ## Sketch
-**TODO**
+![Visual concept of polo user interface](poloconcept.png)
 
 ## Thoughts on testing
 Unit tests can be created to test functionality as well as create situations where users act unfavorably in the interactive environment, making sure that any possible user action at a given state will be handled aprropriately.
