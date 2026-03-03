@@ -1,4 +1,4 @@
-# \[Project Title\]
+# \[GoLine\]
 Members: Josh Justice, Leo Farmerie, Harshvardhan Singh
 
 ## Goal Summary:
@@ -9,7 +9,6 @@ Recreate grep (and possibly other command line utilites) with improvements + add
 - some kind of process manager like top?
 - xargs
 - something of our own?
-  - 
 
 ## Use Case
 This is pretty straight forward, these two utilites are going to be used any time you would use what they aim to replace.
