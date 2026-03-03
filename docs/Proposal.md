@@ -1,7 +1,7 @@
-*\[Project Title\]
+# \[Project Title\]
 Members: Josh Justice & Leo Farmerie
 
-** Goal Summary:
+## Goal Summary:
 Create our own implemantion of nav. Allows users to see into the directory as they navigate the file system.
 Recreate grep (and possibly other command line utilites) with improvements + additional features that we wish were a part of the command
 *Potential Other Utilities* 
@@ -11,32 +11,32 @@ Recreate grep (and possibly other command line utilites) with improvements + add
 - something of our own?
   - 
 
-** Use Case
+## Use Case
 This is pretty straight forward, these two utilites are going to be used any time you would use what they aim to replace.
 
-** Sketch
+## Sketch
 **TODO**
 
-** Thoughts on testing
+## Thoughts on testing
 Unit tests can be created to test functionality as well as create situations where users act unfavorably in the interactive environment, making sure that any possible user action at a given state will be handled aprropriately.
 
-** MVP
-*** polo (After Marco Polo)
+## MVP
+### polo (After Marco Polo)
 - User can peek into subdirs and navigate to their desired destination
 - Menu is interactive, navigation occurs with only one execution
 
-*** grep (no fun name yet)
+### grep (no fun name yet)
 - Search with and without regex
 
 
-** Stretch Goals
-*** polo
+## Stretch Goals
+### polo
 - 
 
-*** grep
+### grep
 - Interactive mode, updates result as regex is updated
   - Corrects users regex errors
 - 
 
-** Checkpoint Goals
+## Checkpoint Goals
 Because our MVP is so minimal, we feel that the meat of the project will be in the strech goals + enhancements to the MVP. Our goal for the checkpoint is to have the MVP done, as both of these utilities are pretty simple at their base. It's possible that we run into issues with the interactive menu of polo, so its possible that that may not be working 100% by the checkpoint. Otherwise, we feel pretty safe to expect that grep will be minimally complete by that time.
