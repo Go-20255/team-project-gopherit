@@ -1,5 +1,5 @@
 *\[Project Title\]
-Members: Josh Justice & Leo Farmerie
+Members: Josh Justice, Leo Farmerie, Harshvardhan Singh
 
 ** Goal Summary:
 Create our own implemantion of nav. Allows users to see into the directory as they navigate the file system.
