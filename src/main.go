@@ -5,6 +5,7 @@ import (
 )
 
 func main() {
+	// Recommend fullscreening your terminal
 	m := menu.Init()
-	m.Listen()
+	m.Run()
 }
