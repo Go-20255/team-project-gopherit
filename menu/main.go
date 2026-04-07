@@ -17,6 +17,8 @@ type Menu struct {
 	Height int
 	Width  int
 	Panes  []Pane
+	setup  func()
+	handle func(keyboard.Key) bool
 }
 
 type Pane struct {
@@ -142,7 +144,11 @@ func (m *Menu) prerun() {
 // commands based on them. Press esc to quit
 // TODO, have run accept a starting directory
 func (m *Menu) Run() {
-	m.prerun()
+	if m.setup != nil {
+		m.setup()
+	} else {
+		m.prerun()
+	}
 
 	if err := keyboard.Open(); err != nil {
 		panic(err)
@@ -160,6 +166,9 @@ func (m *Menu) Run() {
 			clear()
 			//fmt.Println(m)
 			break
+		}
+		if m.handle != nil && m.handle(key) {
+			continue
 		}
 		// TODO: When arrow keys are pressed, make a query
 		// to getDir to look into the next directory
