@@ -95,12 +95,19 @@ func (b *poloBrowser) loadDir(dir string) error {
 		return err
 	}
 
-	b.currentDir = dir
 	b.entries = entries
 	b.selected = clamp(b.selected, 0, len(entries)-1)
 	b.status = ""
-	b.menu.Pane = 0
+	b.menu.prevPane()
 	b.menu.Col = 1
+	// When returning to parent, loop over entries to find
+	// The directory we were previously in
+	for i, entry := range entries {
+		if entry.Path == b.currentDir {
+			b.move(i - b.selected)
+		}
+	}
+	b.currentDir = dir
 	b.setCursorRow(b.cursorRow())
 
 	return nil
@@ -172,8 +179,7 @@ func (b *poloBrowser) clearPane(pane int) {
 
 // Uses the existing batch writer to fill a pane from the top
 func (b *poloBrowser) writePaneLines(lines []string, pane int, width int) {
-	b.menu.Row = 1
-	b.menu.batchWrite(formatPaneLines(lines, width, b.lastDrawRow()), pane)
+	b.menu.batchWrite(formatPaneLines(lines, width, b.lastDrawRow()), pane, 1)
 }
 
 // Formats the directory listing shown in the main pane

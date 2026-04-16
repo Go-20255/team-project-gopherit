@@ -131,11 +131,11 @@ func (m *Menu) prerun() {
 	home, _ := os.UserHomeDir()
 	files := readDir(home + "/classes")
 	m.up(len(files) / 2)
-	m.batchWrite(files, 0)
+	m.batchWrite(files, 0, 1)
 
 	nextDir := home + "/classes/" + files[0]
 	files = readDir(nextDir)
-	m.batchWrite(files, 1)
+	m.batchWrite(files, 1, 1)
 
 	m.draw()
 }
@@ -204,9 +204,9 @@ func (m *Menu) write(text string, row int, pane int) {
 
 // Writes a list of strings to the described pane
 // Lines will be start from m.Row
-func (m *Menu) batchWrite(lines []string, pane int) {
+func (m *Menu) batchWrite(lines []string, pane int, row int) {
 	for i, line := range lines {
-		m.write(line, m.Row+i, pane) // Change this to format better
+		m.write(line, row+i, pane) // Change this to format better
 	}
 }
 
@@ -214,10 +214,16 @@ func (m *Menu) batchWrite(lines []string, pane int) {
 // TODO: Make the line at m.Row a different color
 // (ANSI escape sequences will be your friend here)
 func (m Menu) draw() {
+	color := ""
 	m.goTo(1, 1)
 	clear()
 	for i := 1; i < m.Height-1; i++ {
-		fmt.Print(m.Panes[m.Pane].Lines[i])
+		if i == m.Row {
+			fmt.Print("\033[0;32m")
+			//color = "[0;32m" // Set to green
+		}
+		fmt.Print(color, m.Panes[m.Pane].Lines[i])
+		fmt.Print("\033[0;37m")
 		fmt.Printf("\033[%dC|", 39-len(m.Panes[m.Pane].Lines[i]))
 		// Return carriage on last line
 		if m.Pane+1 < len(m.Panes) {
