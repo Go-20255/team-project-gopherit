@@ -1,8 +1,10 @@
 package menu
 
 import (
+	"bufio"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/eiannone/keyboard"
 )
@@ -233,6 +235,21 @@ func (b *poloBrowser) rightPaneLines() []string {
 		lines = append(lines, previewDirLines(entry.Path, poloPreviewLines)...)
 	} else {
 		lines = append(lines, "Size: "+formatSize(entry.Size))
+		lines = append(lines, "File Preview:", "")
+		file, err := os.Open(entry.Path)
+		if err != nil {
+			lines = append(lines, "File could not be opened.")
+		}
+		reader := *bufio.NewReader(file)
+		for range 10 {
+			text, err := reader.ReadString('\n')
+			if err != nil {
+				lines = append(lines, "Error reading file.")
+				break
+			}
+			text = strings.ReplaceAll(text, "\n", "")
+			lines = append(lines, text)
+		}
 	}
 
 	return b.appendStatusAndHelp(lines)
