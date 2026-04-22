@@ -264,10 +264,11 @@ func (b *poloBrowser) rightPaneLines() []string {
 				break
 			}
 		}
-		// Actually display up to screen limit
+		// Actually display up to screen limit TODO: fix this
 		for range b.maxVisibleEntries() - statusSize {
 			text, err := reader.ReadString('\n')
 			if err == io.EOF {
+				lines = append(lines, "EOF")
 				break
 			} else if err != nil {
 				lines = append(lines, "Error reading file.")
