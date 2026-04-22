@@ -65,7 +65,7 @@ func previewDirLines(dir string, maxLines int) []string {
 	}
 
 	lines := make([]string, 0, maxLines+1)
-	for i := 0; i < maxLines; i++ {
+	for i := 0; i < maxLines-statusSize; i++ {
 		prefix := "[F]"
 		if entries[i].IsDir {
 			prefix = "[D]"

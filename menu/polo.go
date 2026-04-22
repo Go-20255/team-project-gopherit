@@ -2,6 +2,7 @@ package menu
 
 import (
 	"bufio"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -13,7 +14,8 @@ const (
 	poloListStartRow = 4
 	poloLeftWidth    = 38
 	poloRightWidth   = 38
-	poloPreviewLines = 8
+	statusSize       = 7
+	//poloPreviewLines = 8
 )
 
 type poloBrowser struct {
@@ -21,6 +23,7 @@ type poloBrowser struct {
 	currentDir string
 	entries    []poloEntry
 	selected   int
+	scrollLine int
 	status     string
 }
 
@@ -52,6 +55,7 @@ func newPoloBrowser(startDir string) (*poloBrowser, error) {
 	browser := &poloBrowser{
 		menu:       Init(),
 		currentDir: startDir,
+		scrollLine: 0,
 	}
 
 	if err := browser.loadDir(startDir); err != nil {
@@ -78,6 +82,10 @@ func (b *poloBrowser) Run() error {
 			b.enterSelected()
 		case keyboard.KeySpace:
 			return true
+		case keyboard.KeyCtrlK:
+			b.move(-1)
+		case keyboard.KeyCtrlL:
+			b.move(1)
 		default:
 			return false
 		}
@@ -123,6 +131,13 @@ func (b *poloBrowser) move(delta int) {
 
 	b.selected = clamp(b.selected+delta, 0, len(b.entries)-1)
 	b.setCursorRow(b.cursorRow())
+}
+
+func (b *poloBrowser) scroll(delta int) {
+	contents := len(b.menu.Panes[1].Lines) - b.maxVisibleEntries()
+	if contents > 0 {
+		b.rightPaneLines()
+	}
 }
 
 // Moves the browser one directory up if possible
@@ -232,7 +247,7 @@ func (b *poloBrowser) rightPaneLines() []string {
 	lines = append(lines, entryType+" "+entry.Name)
 	if entry.IsDir {
 		lines = append(lines, "Contents:")
-		lines = append(lines, previewDirLines(entry.Path, poloPreviewLines)...)
+		lines = append(lines, previewDirLines(entry.Path, b.maxVisibleEntries())...)
 	} else {
 		lines = append(lines, "Size: "+formatSize(entry.Size))
 		lines = append(lines, "File Preview:", "")
@@ -241,9 +256,20 @@ func (b *poloBrowser) rightPaneLines() []string {
 			lines = append(lines, "File could not be opened.")
 		}
 		reader := *bufio.NewReader(file)
-		for range 10 {
-			text, err := reader.ReadString('\n')
+		// Read through the file up to the scroll line
+		for range b.scrollLine {
+			_, err := reader.ReadString('\n')
 			if err != nil {
+				lines = append(lines, "Error reading file.")
+				break
+			}
+		}
+		// Actually display up to screen limit
+		for range b.maxVisibleEntries() - statusSize {
+			text, err := reader.ReadString('\n')
+			if err == io.EOF {
+				break
+			} else if err != nil {
 				lines = append(lines, "Error reading file.")
 				break
 			}
@@ -266,6 +292,7 @@ func (b *poloBrowser) appendStatusAndHelp(lines []string) []string {
 		"Right/Enter: open",
 		"Left: parent",
 		"Esc: quit",
+		"Ctrl + K/L: scroll preview",
 	)
 	return lines
 }
