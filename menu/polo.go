@@ -70,26 +70,29 @@ func (b *poloBrowser) Run() error {
 	b.menu.setup = func() {
 		_ = b.render()
 	}
-	b.menu.handle = func(key keyboard.Key) bool {
-		switch key {
-		case keyboard.KeyArrowUp:
-			b.move(-1)
-		case keyboard.KeyArrowDown:
-			b.move(1)
-		case keyboard.KeyArrowLeft:
-			b.goParent()
-		case keyboard.KeyArrowRight, keyboard.KeyEnter:
-			b.enterSelected()
-		case keyboard.KeySpace:
-			return true
-		case keyboard.KeyCtrlK:
-			b.move(-1)
-		case keyboard.KeyCtrlL:
-			b.move(1)
+	b.menu.handle = func(key keyboard.Key, letter rune) bool {
+		switch letter {
+		case ',':
+			b.scroll(-5)
+		case '.':
+			b.scroll(5)
 		default:
-			return false
+			switch key {
+			case keyboard.KeyArrowUp:
+				b.move(-1)
+			case keyboard.KeyArrowDown:
+				b.move(1)
+			case keyboard.KeyArrowLeft:
+				b.goParent()
+			case keyboard.KeyArrowRight, keyboard.KeyEnter:
+				b.enterSelected()
+			case keyboard.KeySpace:
+				return true
+			default:
+				return false
+			}
+			b.scrollLine = 0 // Reset scroll position when we move
 		}
-
 		_ = b.render()
 		return true
 	}
@@ -134,10 +137,11 @@ func (b *poloBrowser) move(delta int) {
 }
 
 func (b *poloBrowser) scroll(delta int) {
-	contents := len(b.menu.Panes[1].Lines) - b.maxVisibleEntries()
-	if contents > 0 {
-		b.rightPaneLines()
-	}
+	// contents := len(b.menu.Panes[1].Lines) - b.maxVisibleEntries()
+	// if contents > 0 {
+	// 	b.rightPaneLines()
+	// }
+	b.scrollLine = clamp(b.scrollLine+delta, 0, 1000) // TODO: Find and track last file line minus b.maxVisibleEntries()
 }
 
 // Moves the browser one directory up if possible
@@ -264,8 +268,7 @@ func (b *poloBrowser) rightPaneLines() []string {
 				break
 			}
 		}
-		// Actually display up to screen limit TODO: fix this
-		for range b.maxVisibleEntries() - statusSize {
+		for range b.maxVisibleEntries() - statusSize - 1 {
 			text, err := reader.ReadString('\n')
 			if err == io.EOF {
 				lines = append(lines, "EOF")
@@ -293,7 +296,7 @@ func (b *poloBrowser) appendStatusAndHelp(lines []string) []string {
 		"Right/Enter: open",
 		"Left: parent",
 		"Esc: quit",
-		"Ctrl + K/L: scroll preview",
+		",/.: scroll preview",
 	)
 	return lines
 }

@@ -18,7 +18,7 @@ type Menu struct {
 	Width  int
 	Panes  []Pane
 	setup  func()
-	handle func(keyboard.Key) bool
+	handle func(keyboard.Key, rune) bool
 }
 
 type Pane struct {
@@ -158,7 +158,7 @@ func (m *Menu) Run() {
 	}()
 
 	for {
-		_, key, err := keyboard.GetKey()
+		letter, key, err := keyboard.GetKey()
 		if err != nil {
 			panic(err)
 		}
@@ -167,7 +167,7 @@ func (m *Menu) Run() {
 			//fmt.Println(m)
 			break
 		}
-		if m.handle != nil && m.handle(key) {
+		if m.handle != nil && m.handle(key, letter) {
 			continue
 		}
 		// TODO: When arrow keys are pressed, make a query
