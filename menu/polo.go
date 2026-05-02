@@ -67,6 +67,9 @@ func newPoloBrowser(startDir string) (*poloBrowser, error) {
 
 // Listens for key presses and updates the browser until the given user exits
 func (b *poloBrowser) Run() error {
+	// defer func() {
+	// 	keyboard.Close()
+	// }()
 	b.menu.setup = func() {
 		_ = b.render()
 	}
@@ -87,7 +90,9 @@ func (b *poloBrowser) Run() error {
 			case keyboard.KeyArrowRight, keyboard.KeyEnter:
 				b.enterSelected()
 			case keyboard.KeySpace:
-				return true
+				os.WriteFile("/tmp/polo.txt", []byte(b.currentDir), 0644)
+				clear()
+				os.Exit(0)
 			default:
 				return false
 			}

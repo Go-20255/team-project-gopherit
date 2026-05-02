@@ -3,7 +3,6 @@ package menu
 import (
 	"fmt"
 	"os"
-	"strconv"
 
 	"github.com/charmbracelet/x/term"
 	"github.com/eiannone/keyboard"
@@ -164,7 +163,6 @@ func (m *Menu) Run() {
 		}
 		if key == keyboard.KeyEsc {
 			clear()
-			//fmt.Println(m)
 			break
 		}
 		if m.handle != nil && m.handle(key, letter) {
@@ -187,10 +185,6 @@ func (m *Menu) Run() {
 		}
 		if key == keyboard.KeyArrowLeft {
 			m.prevPane()
-			m.draw()
-		}
-		if key == keyboard.KeySpace {
-			m.write(strconv.Itoa(m.Row)+","+strconv.Itoa(m.Pane), m.Row, m.Pane)
 			m.draw()
 		}
 	}
