@@ -1,21 +1,15 @@
 package menu
 
 import (
-	"bufio"
-	"io"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/eiannone/keyboard"
 )
 
 const (
-	poloListStartRow = 4
-	poloLeftWidth    = 38
-	poloRightWidth   = 38
-	statusSize       = 7
-	//poloPreviewLines = 8
+	poloListStartRow = 5
+	poloHelpLines    = 4
 )
 
 type poloBrowser struct {
@@ -67,9 +61,6 @@ func newPoloBrowser(startDir string) (*poloBrowser, error) {
 
 // Listens for key presses and updates the browser until the given user exits
 func (b *poloBrowser) Run() error {
-	// defer func() {
-	// 	keyboard.Close()
-	// }()
 	b.menu.setup = func() {
 		_ = b.render()
 	}
@@ -90,14 +81,12 @@ func (b *poloBrowser) Run() error {
 			case keyboard.KeyArrowRight, keyboard.KeyEnter:
 				b.enterSelected()
 			case keyboard.KeySpace:
-				os.WriteFile("/tmp/polo.txt", []byte(b.currentDir), 0644)
-				clear()
-				os.Exit(0)
+				b.finishSelection()
 			default:
 				return false
 			}
-			b.scrollLine = 0 // Reset scroll position when we move
 		}
+
 		_ = b.render()
 		return true
 	}
@@ -108,24 +97,26 @@ func (b *poloBrowser) Run() error {
 
 // Refreshes the browser state for a new current directory
 func (b *poloBrowser) loadDir(dir string) error {
+	return b.loadDirAt(dir, "")
+}
+
+// Refreshes the browser state and optionally restores a highlighted path
+func (b *poloBrowser) loadDirAt(dir string, selectedPath string) error {
 	entries, err := loadPoloEntries(dir)
 	if err != nil {
 		return err
 	}
 
 	b.entries = entries
-	b.selected = clamp(b.selected, 0, len(entries)-1)
+	b.selected = 0
+	if selectedPath != "" {
+		b.selected = findEntryIndex(entries, selectedPath)
+	}
+	b.currentDir = dir
+	b.scrollLine = 0
 	b.status = ""
 	b.menu.prevPane()
 	b.menu.Col = 1
-	// When returning to parent, loop over entries to find
-	// The directory we were previously in
-	for i, entry := range entries {
-		if entry.Path == b.currentDir {
-			b.move(i - b.selected)
-		}
-	}
-	b.currentDir = dir
 	b.setCursorRow(b.cursorRow())
 
 	return nil
@@ -138,15 +129,19 @@ func (b *poloBrowser) move(delta int) {
 	}
 
 	b.selected = clamp(b.selected+delta, 0, len(b.entries)-1)
+	b.scrollLine = 0
 	b.setCursorRow(b.cursorRow())
 }
 
 func (b *poloBrowser) scroll(delta int) {
-	// contents := len(b.menu.Panes[1].Lines) - b.maxVisibleEntries()
-	// if contents > 0 {
-	// 	b.rightPaneLines()
-	// }
-	b.scrollLine = clamp(b.scrollLine+delta, 0, 1000) // TODO: Find and track last file line minus b.maxVisibleEntries()
+	// Only files use scroll because directory previews are already clipped
+	if len(b.entries) == 0 || b.entries[b.selected].IsDir {
+		b.scrollLine = 0
+		return
+	}
+
+	maxScroll := previewFileScrollLimit(b.entries[b.selected].Path, b.filePreviewRows(b.entries[b.selected]))
+	b.scrollLine = clamp(b.scrollLine+delta, 0, maxScroll)
 }
 
 // Moves the browser one directory up if possible
@@ -157,7 +152,7 @@ func (b *poloBrowser) goParent() {
 		return
 	}
 
-	if err := b.loadDir(nextDir); err != nil {
+	if err := b.loadDirAt(nextDir, b.currentDir); err != nil {
 		b.status = "Unable to open parent directory."
 	}
 }
@@ -185,8 +180,9 @@ func (b *poloBrowser) render() error {
 	b.clearPane(0)
 	b.clearPane(1)
 
-	b.writePaneLines(b.leftPaneLines(), 0, poloLeftWidth)
-	b.writePaneLines(b.rightPaneLines(), 1, poloRightWidth)
+	paneWidth := b.menu.displayPaneWidth()
+	b.writePaneLines(b.leftPaneLines(), 0, paneWidth)
+	b.writePaneLines(b.rightPaneLines(), 1, paneWidth)
 
 	b.menu.Pane = 0
 	b.menu.Col = 1
@@ -211,8 +207,9 @@ func (b *poloBrowser) writePaneLines(lines []string, pane int, width int) {
 // Formats the directory listing shown in the main pane
 func (b *poloBrowser) leftPaneLines() []string {
 	lines := []string{
-		"Polo",
-		b.currentDir,
+		"Polo Browser",
+		"Current: " + b.currentDir,
+		"Review the target path before finishing",
 		"",
 	}
 
@@ -241,51 +238,30 @@ func (b *poloBrowser) leftPaneLines() []string {
 
 // Formats details for the currently selected entry
 func (b *poloBrowser) rightPaneLines() []string {
-	lines := []string{"Selected"}
+	lines := b.selectionHeaderLines()
 
 	if len(b.entries) == 0 {
-		lines = append(lines, "(directory is empty)")
+		lines = append(lines, "No entries in this directory")
 		return b.appendStatusAndHelp(lines)
 	}
+
 	entry := b.entries[b.selected]
-	entryType := "[F]"
 	if entry.IsDir {
-		entryType = "[D]"
+		lines = append(lines,
+			"[D] "+entry.Name,
+			"Space will finish in this directory",
+			"Directory preview:",
+		)
+		lines = append(lines, previewDirLines(entry.Path, b.previewRows(len(lines)))...)
+		return b.appendStatusAndHelp(lines)
 	}
 
-	lines = append(lines, entryType+" "+entry.Name)
-	if entry.IsDir {
-		lines = append(lines, "Contents:")
-		lines = append(lines, previewDirLines(entry.Path, b.maxVisibleEntries())...)
-	} else {
-		lines = append(lines, "Size: "+formatSize(entry.Size))
-		lines = append(lines, "File Preview:", "")
-		file, err := os.Open(entry.Path)
-		if err != nil {
-			lines = append(lines, "File could not be opened.")
-		}
-		reader := *bufio.NewReader(file)
-		// Read through the file up to the scroll line
-		for range b.scrollLine {
-			_, err := reader.ReadString('\n')
-			if err != nil {
-				lines = append(lines, "Error reading file.")
-				break
-			}
-		}
-		for range b.maxVisibleEntries() - statusSize - 1 {
-			text, err := reader.ReadString('\n')
-			if err == io.EOF {
-				lines = append(lines, "EOF")
-				break
-			} else if err != nil {
-				lines = append(lines, "Error reading file.")
-				break
-			}
-			text = strings.ReplaceAll(text, "\n", "")
-			lines = append(lines, text)
-		}
-	}
+	lines = append(lines, b.filePreviewBaseLines(entry)...)
+	// Keeps the preview window separate from the metadata and help footer
+	previewLines, maxScroll := previewFileLines(entry.Path, b.scrollLine, b.filePreviewRows(entry))
+	b.scrollLine = clamp(b.scrollLine, 0, maxScroll)
+	lines = append(lines, formatPreviewWindow(b.scrollLine, len(previewLines), maxScroll))
+	lines = append(lines, previewLines...)
 
 	return b.appendStatusAndHelp(lines)
 }
@@ -297,13 +273,24 @@ func (b *poloBrowser) appendStatusAndHelp(lines []string) []string {
 	}
 	lines = append(lines,
 		"",
-		"Up/Down: move",
-		"Right/Enter: open",
-		"Left: parent",
-		"Esc: quit",
-		",/.: scroll preview",
+		"Up/Down move through entries",
+		"Right opens and Left goes back",
+		"Space uses the target path shown above",
+		", up preview  . down preview  Esc quit",
 	)
 	return lines
+}
+
+// Writes the selected directory path for the wrapper script
+func (b *poloBrowser) finishSelection() {
+	target := b.finishTarget()
+	if err := os.WriteFile(poloStateFilePath(), []byte(target), 0644); err != nil {
+		b.status = "Unable to save selected directory."
+		return
+	}
+
+	clear()
+	os.Exit(0)
 }
 
 // Choosses which slice of entries fits in the current window
@@ -357,6 +344,57 @@ func (b *poloBrowser) lastDrawRow() int {
 		return 1
 	}
 	return lastRow
+}
+
+// Tracks how many rows the footer uses in the preview pane
+func (b *poloBrowser) footerLines() int {
+	footerLines := 1 + poloHelpLines
+	if b.status != "" {
+		footerLines += 2
+	}
+
+	return footerLines
+}
+
+// Calculates the remaining space for preview content
+func (b *poloBrowser) previewRows(headerLines int) int {
+	previewRows := b.lastDrawRow() - headerLines - b.footerLines()
+	if previewRows < 0 {
+		return 0
+	}
+
+	return previewRows
+}
+
+// Keeps the finish behavior visible while browsing
+func (b *poloBrowser) selectionHeaderLines() []string {
+	// Reminds the user where Space will leave them before they confirm
+	return []string{
+		"Selection",
+		"Finish target: " + b.finishTarget(),
+		"",
+	}
+}
+
+func (b *poloBrowser) filePreviewBaseLines(entry poloEntry) []string {
+	return []string{
+		"[F] " + entry.Name,
+		"Selected file preview only",
+		"Type: " + formatFileType(entry),
+		"Size: " + formatSize(entry.Size),
+		"Modified: " + formatModTime(entry.ModTime),
+		"Preview:",
+	}
+}
+
+func (b *poloBrowser) filePreviewRows(entry poloEntry) int {
+	// Reserves room for the selection header metadata preview label and footer
+	headerLines := len(b.selectionHeaderLines()) + len(b.filePreviewBaseLines(entry)) + 1
+	return b.previewRows(headerLines)
+}
+
+func (b *poloBrowser) finishTarget() string {
+	return selectedDirectoryPath(b.currentDir, b.entries, b.selected)
 }
 
 // Keeps the cursor bounds code a little easier to read

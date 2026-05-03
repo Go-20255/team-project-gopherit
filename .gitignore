@@ -1,1 +1,2 @@
-go.sum
+cmd/polo/polo
+cmd/polo/polo.exe

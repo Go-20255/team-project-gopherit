@@ -3,6 +3,8 @@ package menu
 import (
 	"fmt"
 	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/charmbracelet/x/term"
 	"github.com/eiannone/keyboard"
@@ -126,15 +128,22 @@ func readDir(path string) []string {
 // control is given to the user
 // TODO: Same with run, lets accept a starting dir
 func (m *Menu) prerun() {
-	// Get initial directory
-	home, _ := os.UserHomeDir()
-	files := readDir(home + "/classes")
-	m.up(len(files) / 2)
+	startDir, err := os.Getwd()
+	if err != nil {
+		m.draw()
+		return
+	}
+
+	files := readDir(startDir)
 	m.batchWrite(files, 0, 1)
 
-	nextDir := home + "/classes/" + files[0]
-	files = readDir(nextDir)
-	m.batchWrite(files, 1, 1)
+	if len(files) == 0 {
+		m.draw()
+		return
+	}
+
+	nextDir := filepath.Join(startDir, files[0])
+	m.batchWrite(readDir(nextDir), 1, 1)
 
 	m.draw()
 }
@@ -208,25 +217,23 @@ func (m *Menu) batchWrite(lines []string, pane int, row int) {
 // TODO: Make the line at m.Row a different color
 // (ANSI escape sequences will be your friend here)
 func (m Menu) draw() {
-	color := ""
+	paneWidth := m.displayPaneWidth()
 	m.goTo(1, 1)
 	clear()
 	for i := 1; i < m.Height-1; i++ {
-		if i == m.Row {
-			fmt.Print("\033[0;32m")
-			//color = "[0;32m" // Set to green
-		}
-		fmt.Print(color, m.Panes[m.Pane].Lines[i])
-		fmt.Print("\033[0;37m")
-		fmt.Printf("\033[%dC|", 39-len(m.Panes[m.Pane].Lines[i]))
-		// Return carriage on last line
+		left := formatDisplayCell(m.Panes[m.Pane].Lines[i], paneWidth)
+		right := formatDisplayCell("", paneWidth)
 		if m.Pane+1 < len(m.Panes) {
-			fmt.Println(m.Panes[m.Pane+1].Lines[i])
-		} else {
-			fmt.Println("")
+			right = formatDisplayCell(m.Panes[m.Pane+1].Lines[i], paneWidth)
 		}
+
+		if i == m.Row {
+			left = highlightDisplayCell(left)
+		}
+
+		fmt.Printf("| %s | %s |\n", left, right)
 	}
-	m.goTo(m.Row, m.Col)
+	m.goTo(m.Row, 2)
 }
 
 // Moves cursor to Row, Col
@@ -235,4 +242,32 @@ func (m Menu) draw() {
 // draw function
 func (m Menu) goTo(row, col int) {
 	fmt.Printf("\033[%d;%df", row, col)
+}
+
+// Keeps pane widths aligned with the current terminal size
+func (m Menu) displayPaneWidth() int {
+	width := (m.Width - 7) / 2
+	if width < 20 {
+		return 20
+	}
+
+	return width
+}
+
+func formatDisplayCell(text string, width int) string {
+	// Pads the cell so the pane borders stay aligned
+	if len(text) > width {
+		text = text[:width]
+	}
+
+	if len(text) < width {
+		text += strings.Repeat(" ", width-len(text))
+	}
+
+	return text
+}
+
+func highlightDisplayCell(text string) string {
+	// Inverts the selected row without changing the stored pane text
+	return "\033[30;42m" + text + "\033[0;37m"
 }
