@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	startDir, err := os.Getwd()
+	startDir, err := startDirFromArgs()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
@@ -18,4 +18,12 @@ func main() {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
+}
+
+func startDirFromArgs() (string, error) {
+	if len(os.Args) > 1 {
+		return os.Args[1], nil
+	}
+
+	return os.Getwd()
 }
