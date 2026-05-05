@@ -5,7 +5,7 @@
 ## Authors
 Leo Farmerie, Josh Justice, and Harshvardhan Singh
 
-GoLine currently includes the interactive `polo` browser work and the in-progress `ggrep` work
+GoLine currently includes the interactive `polo` browser work and the `ggrep` work.
 
 ## Polo Build And Run
 
