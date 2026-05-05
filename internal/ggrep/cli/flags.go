@@ -11,9 +11,10 @@ type Options struct {
 	IgnoreCase bool
 	IsRegex    bool
 	Pattern    string
-	Files      []string
-	After      int
-	Before     int
+	Files       []string
+	After       int
+	Before      int
+	Interactive bool
 }
 
 // ParseFlags parses standard command-line flags and returns the configuration.
@@ -25,9 +26,11 @@ func ParseFlags() (*Options, error) {
 	after := flag.Int("A", 0, "Print NUM lines of trailing context after matching lines")
 	before := flag.Int("B", 0, "Print NUM lines of leading context before matching lines")
 	context := flag.Int("C", 0, "Print NUM lines of output context")
+	interactive := flag.Bool("I", false, "Enable interactive mode with live search")
 
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage: %s [OPTION]... PATTERN [FILE]...\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "       %s -I [OPTION]... [FILE]...\n", os.Args[0])
 		fmt.Fprintf(os.Stderr, "Search for PATTERN in each FILE.\n\n")
 		flag.PrintDefaults()
 	}
@@ -35,13 +38,20 @@ func ParseFlags() (*Options, error) {
 	flag.Parse()
 
 	args := flag.Args()
-	if len(args) < 1 {
-		flag.Usage()
-		return nil, fmt.Errorf("missing pattern")
-	}
+	pattern := ""
+	var files []string
 
-	pattern := args[0]
-	files := args[1:]
+	if *interactive {
+		// In interactive mode, all arguments are treated as files
+		files = args
+	} else {
+		if len(args) < 1 {
+			flag.Usage()
+			return nil, fmt.Errorf("missing pattern")
+		}
+		pattern = args[0]
+		files = args[1:]
+	}
 
 	regex := *isRegex
 	if *fixedString {
@@ -63,8 +73,9 @@ func ParseFlags() (*Options, error) {
 		IgnoreCase: *ignoreCase,
 		IsRegex:    regex,
 		Pattern:    pattern,
-		Files:      files,
-		After:      a,
-		Before:     b,
+		Files:       files,
+		After:       a,
+		Before:      b,
+		Interactive: *interactive,
 	}, nil
 }

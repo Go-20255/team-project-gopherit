@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"os"
 
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/team-project-gopherit/internal/ggrep/cli"
 	"github.com/team-project-gopherit/internal/ggrep/core"
+	"github.com/team-project-gopherit/internal/ggrep/tui"
 )
 
 func main() {
@@ -38,10 +40,28 @@ func main() {
 			}
 		}
 		if prefix != "" {
-			fmt.Printf("%s%s\n", prefix, res.Line)
+			fmt.Fprintf(os.Stdout, "%s%s\n", prefix, res.Line)
 		} else {
-			fmt.Println(res.Line)
+			fmt.Fprintln(os.Stdout, res.Line)
 		}
+	}
+
+	if opts.Interactive {
+		app := tui.InitialModel(opts)
+		p := tea.NewProgram(app, tea.WithAltScreen(), tea.WithOutput(os.Stderr))
+		finalModel, err := p.Run()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error running TUI: %v\n", err)
+			os.Exit(1)
+		}
+
+		// Print final results to stdout for piping
+		if m, ok := finalModel.(*tui.Model); ok {
+			for _, res := range m.GetFinalResults() {
+				printFn(res)
+			}
+		}
+		return
 	}
 
 	if len(opts.Files) == 0 {
