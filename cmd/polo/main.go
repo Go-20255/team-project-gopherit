@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"gopherit/menu"
+	"github.com/team-project-gopherit/menu"
 )
 
 func main() {
